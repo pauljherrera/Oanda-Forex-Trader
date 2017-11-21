@@ -16,7 +16,7 @@ class OandaDataFeeder:
     Gets live data from Oanda. Uses a publisher class to feed the data to
     other components.
     """
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.pub = Publisher()
     
 

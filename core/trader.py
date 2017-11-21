@@ -11,3 +11,11 @@ class Trader:
     """
     Makes trades operations using the Oanda API wrapper.
     """
+    def place_order(self, _type='market', volume=1000, side='buy',
+                    pair='EUR_USD', price=None, stop_loss=None,
+                    take_profit=None):
+        pass
+    
+    def close_order(self):
+        pass
+    
