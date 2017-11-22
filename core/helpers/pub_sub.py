@@ -1,34 +1,34 @@
 class Subscriber:
     def __init__(self, name, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.name = name
 
     def update(self, message):
         # start new Thread in here to handle any task
-#        print('\n\n {} got message "{}"'.format(self.name, message))
+        print('\n\n {} got message "{}"'.format(self.name, message))
         pass
         
 class Publisher:
-    def __init__(self, events, *args, **kwargs):
-        # maps event names to subscribers
+    def __init__(self, channels, *args, **kwargs):
+        # maps channel names to subscribers
         # str -> dict
-        super().__init__()
-        self.events = { event : dict()
-                          for event in events }
+        super().__init__(*args, **kwargs)
+        self.channels = { channel : dict()
+                          for channel in channels }
                           
-    def get_subscribers(self, event):
-        return self.events[event]
+    def get_subscribers(self, channel):
+        return self.channels[channel]
 
-    def get_events(self):
-        return self.events
+    def get_channels(self):
+        return self.channels
                 
-    def register(self, event, channel):
-        self.get_subscribers(event)[channel] = channel.update
+    def register(self, channel, subscriber):
+        self.get_subscribers(channel)[subscriber] = subscriber.update
 
-    def unregister(self, event, channel):
-        del self.get_subscribers(event)[channel]
+    def unregister(self, channel, subscriber):
+        del self.get_subscribers(channel)[subscriber]
 
-    def dispatch(self, event, message):
-        for subscriber, callback in self.get_subscribers(event).items():
+    def dispatch(self, channel, message):
+        for subscriber, callback in self.get_subscribers(channel).items():
             callback(message)
 
