@@ -55,7 +55,7 @@ if __name__ == "__main__":
     accountID = '101-001-1407695-002' 
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
     client = oandapyV20.API(access_token=access_token, environment="practice")
-    instrument='AUD_CHF'
+    instrument='GBP_USD'
     dataf = OandaDataFeeder(accountID, client)
     
     sub = Subscriber('sub')
