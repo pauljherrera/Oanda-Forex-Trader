@@ -5,6 +5,7 @@ Created on Tue Nov 21 17:32:50 2017
 @author: Avanti Financial Services.
 """
 import oandapyV20.endpoints.orders as orders
+import oandapyV20.endpoints.accounts as accounts
 from oandapyV20.contrib.requests import (
     MarketOrderRequest,
     LimitOrderRequest,
@@ -12,6 +13,7 @@ from oandapyV20.contrib.requests import (
     TakeProfitDetails,
     StopLossDetails)
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from math import floor
 
 
@@ -19,17 +21,24 @@ class Trader:
     """
     Makes trades operations using the Oanda API wrapper.
     """
-    def __init__(self, accountID, api_client, instrument=None, *args, **kwargs):
+    def __init__(self, accountID, api_client, instrument=None, 
+                 leverage=100, *args, **kwargs):
         self.accountID = accountID
         self.client = api_client
         self.last_order = None
         self.instrument = instrument
+        self.leverage = leverage
+        self.get_margin_available()
         
-    def get_volume(self, percentage):
-        """
-        TODO: apply money management.
-        """
-        return 10000
+        # Initializing daemon for getting account balance
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(self.get_margin_available , 'interval', minutes=1)
+        scheduler.start()
+        
+    def get_margin_available(self):
+        a = accounts.AccountDetails(accountID)
+        r = self.client.request(a)
+        self.margin_available = float(r['account']['marginAvailable'])
         
     def new_order(self, trade):
         """
@@ -43,7 +52,10 @@ class Trader:
             'Target Price 2': float,
             'Type of Trade': <'LONG'/'SHORT'>}
         """
-        units = self.get_volume(trade['Pct of Portfolio'])
+        print(self.margin_available)
+        print(trade['Pct of Portfolio'])
+        print(self.leverage)
+        units = self.margin_available * trade['Pct of Portfolio'] * self.leverage
         
         pprint(self.place_order(_type='limit', 
                         units=floor(units * trade['TP1 vs TP2 Split']), 
@@ -123,9 +135,9 @@ if __name__ == "__main__":
     take_profit = 0.76
     
     trade = {'Entry Price': 111.08000000000001,
-            'Pct of Portfolio': 0.03,
+            'Pct of Portfolio': 0.01,
             'Stop Loss': 110.86500000000001,
-            'TP1 vs TP2 Split': 0.5,
+            'TP1 vs TP2 Split': 0.3,
             'Target Price 1': 162.93000000000001,
             'Target Price 2': 185.14699999999999,
             'Type of Trade': 'LONG',
