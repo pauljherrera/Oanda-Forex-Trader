@@ -31,7 +31,8 @@ class Strategy(Subscriber):
         self.environment = kwargs['environment']
         self.ETF1 = '{}T'.format(kwargs['ETF1'])
         self.ETF = kwargs['ETF']
-        
+        self.columns=['Date','O','H','L','C']
+
         #prepairing the parameters for request
         res = instruments.InstrumentsCandles(instrument=self.instrument, params=self.params)
         self.client = oandapyV20.API(access_token=self.access_token, environment=self.environment)
@@ -44,25 +45,36 @@ class Strategy(Subscriber):
 
         #creating and setting up the dataframe with the format specified by the user
         data = res.response
-        self.ETF_df = pd.DataFrame(columns=['Date', 'O','H','L','C'])
+        self.ETF_df = pd.DataFrame(columns=self.columns)
         self.ETF_df['Date'] = [i['time'] for i in data['candles']]
-        self.ETF_df[['O','H','L','C']] = [(float(i['mid']['o']), float(i['mid']['h']), 
+        self.ETF_df[['O','H','L','C']] = [(float(i['mid']['o']), float(i['mid']['h']),
                                            float(i['mid']['l']), float(i['mid']['c'])) \
                                            for i in data['candles']]
         self.ETF_df['Date'] = pd.to_datetime(self.ETF_df['Date'])
         self.ETF_df.set_index('Date', drop=True, inplace=True)
+
+
         self.ETF1_df = resample_ohlcv(self.ETF_df, rule=self.ETF1, volume=False)
 #        print(" \nM5 DATAFRAME: \n {} \nM15 DATAFRAME: \n {}".format(self.ETF_df,
-#                                                                     self.ETF1_df))
+#                                                                   self.ETF1_df))
+        TEMP_df = self.ETF_df
+        TEMP_df['Date'] = TEMP_df.index
+        TEMP_df.reset_index(drop=True, inplace=True)
+        TEMP_df = TEMP_df[self.columns]
+
+        TEMP1_df = self.ETF1_df
+        TEMP1_df['Date'] = TEMP1_df.index
+        TEMP1_df.reset_index(drop=True, inplace=True)
+        TEMP1_df = TEMP1_df[self.columns]
 
         #period of live dataframe
         scheduler = BackgroundScheduler()
         scheduler.add_job(self.update_dfs, trigger='cron',
                           minute='*/{}'.format(self.ETF))
         scheduler.start()
-        
+
         # Calling on bar.
-        self.on_ETF_bar(self.ETF_df, self.ETF1_df)
+        self.on_ETF_bar(TEMP_df,TEMP1_df)
 
     def update(self, message):
         #Extracting the data in order to build the dataframe
@@ -91,27 +103,40 @@ class Strategy(Subscriber):
         rule = '{}T'.format(self.ETF)
         resample_df = self.live_df['price'].resample(rule).ohlc().ffill()
         resample_df.columns = ['O','H','L','C']
+
         self.ETF_df = concat_ohlc(self.ETF_df, resample_df)
-        
+
+        ETF_df = self.ETF_df
+        ETF_df['Date'] = ETF_df.index
+        ETF_df.reset_index(drop=True, inplace=True)
+        ETF_df = ETF_df[self.columns]
+
         # Updating ETF dataframe.
         resample_df = self.live_df['price'].resample(self.ETF1).ohlc().ffill()
         resample_df.columns = ['O','H','L','C']
+
         self.ETF1_df = concat_ohlc(self.ETF1_df, resample_df)
-        
-        self.on_ETF_bar(self.ETF_df, self.ETF1_df)
+
+        ETF1_df = self.ETF1_df
+        ETF1_df['Date'] = ETF1_df.index
+        ETF1_df.reset_index(drop=True, inplace=True)
+        ETF1_df = ETF1_df[self.columns]
+
+        self.on_ETF_bar(ETF_df, ETF1_df)
 
 
 if __name__ == "__main__":
     """testing"""
     from core.data_feeder import OandaDataFeeder
-    
+
     #parameters set-up
     headers = {'instrument': 'GBP_USD',
-                'params': {'granularity':"M5", 'count':200},
+                'params': {'granularity':"M5", 'start':"2017-03-25T00:00:00Z", #example:2017-03-25T08:00:00Z
+                            'end':"2017-08-30T00:00:00Z"},
                 'access_token': 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c',
                 'environment':'practice',
                 'ETF1': 15,
-                'ETF': 5} #minutes | period of live dataframe
+                'ETF': 1} #minutes | period of live dataframe
     #'accountID' = '101-001-1407695-002'
     message = {'bids': [{'liquidity': 10000000, 'price': '1.33045'}],
         'instrument': 'GBP_USD', 'tradeable': True,
@@ -121,13 +146,13 @@ if __name__ == "__main__":
 
 #    strat.update(message)
 
-    accountID = '101-001-1407695-002' 
+    accountID = '101-001-1407695-002'
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
     client = oandapyV20.API(access_token=access_token, environment="practice")
     instrument='GBP_USD'
-    
-    dataf = OandaDataFeeder(accountID, client)   
+
+    dataf = OandaDataFeeder(accountID, client)
     dataf.get_live_data(instrument)
-    
+
     strat = Strategy(**headers)
     dataf.pub.register('new_data', strat)
