@@ -57,7 +57,7 @@ class Trader:
         print(self.leverage)
         units = self.margin_available * trade['Pct of Portfolio'] * self.leverage
         
-        pprint(self.place_order(_type='limit', 
+        pprint(self._place_order(_type='limit', 
                         units=floor(units * trade['TP1 vs TP2 Split']), 
                         side=trade['Type of Trade'],
                         instrument=self.instrument, 
@@ -65,7 +65,7 @@ class Trader:
                         stop_loss=trade['Stop Loss'],
                         take_profit=trade['Target Price 1']))
         
-        pprint(self.place_order(_type='limit', 
+        pprint(self._place_order(_type='limit', 
                         units=floor(units * (1 - trade['TP1 vs TP2 Split'])), 
                         side=trade['Type of Trade'],
                         instrument=self.instrument, 
@@ -74,7 +74,7 @@ class Trader:
                         take_profit=trade['Target Price 2']))
         
     
-    def place_order(self, _type='market', units=1000, side='LONG',
+    def _place_order(self, _type='market', units=1000, side='LONG',
                     instrument='EUR_USD', price=None, stop_loss=None,
                     take_profit=None):
         if take_profit:

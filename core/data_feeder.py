@@ -6,6 +6,7 @@ Created on Tue Nov 21 17:23:35 2017
 """
 import sys
 import os
+import threading
 
 import oandapyV20.endpoints.pricing as pricing
 from oandapyV20.exceptions import V20Error
@@ -25,14 +26,8 @@ class OandaDataFeeder:
         self.client = api_client
         self.pub = Publisher(['new_data'])
         
-    def filter_data(self, data):
-        """
-        Filters the necessary data and publishes it.
-        """
-        if data['type'] == 'PRICE':
-            self.pub.dispatch('new_data', data)
         
-    def get_live_data(self, instrument='EUR_USD'):
+    def _live_data(self, instrument='EUR_USD'):
         """
         Subscribes to the stream of data of an instrument.
         """
@@ -44,6 +39,20 @@ class OandaDataFeeder:
         
         except V20Error as e:
             print("Error: {}".format(e))
+
+        
+    def filter_data(self, data):
+        """
+        Filters the necessary data and publishes it.
+        """
+        if data['type'] == 'PRICE':
+            self.pub.dispatch('new_data', data)
+            
+        
+    def get_live_data(self, instrument='EUR_USD'):
+        t = threading.Thread(target=self._live_data, args=(instrument, ))
+        t.start()
+        
             
 if __name__ == "__main__":
     """
