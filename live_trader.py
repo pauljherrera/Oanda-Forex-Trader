@@ -16,7 +16,8 @@ class CustomStrategy(Strategy):
         """
         Place your code here.
         """
-        
+        print('New bar')
+        print(ETF_df, ETF1_df)
         
         
 
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     instrument = configuration['Instrument']
     headers = {'instrument': instrument,
                 'params': {'granularity':"M{}".format(configuration['ETF']), 
-                           'count':200},
+                           'count':1000},
                 'access_token': access_token,
                 'environment':environment,
                 'ETF1': configuration['ETF1'],
@@ -42,11 +43,11 @@ if __name__ == "__main__":
                     instrument=instrument)
     data_feeder = OandaDataFeeder(accountID=accountID, 
                             api_client=client)   
-    strategy = Strategy(**headers)
+    strategy = CustomStrategy(**headers)
     strategy.trader = trader
     data_feeder.pub.register('new_data', strategy)
     
     # Start data feeder.
     data_feeder.get_live_data(instrument=instrument)
-    
+    print('Trader succesfully initialized.')
     

@@ -36,7 +36,7 @@ class Trader:
         scheduler.start()
         
     def get_margin_available(self):
-        a = accounts.AccountDetails(accountID)
+        a = accounts.AccountDetails(self.accountID)
         r = self.client.request(a)
         self.margin_available = float(r['account']['marginAvailable'])
         
@@ -52,27 +52,29 @@ class Trader:
             'Target Price 2': float,
             'Type of Trade': <'LONG'/'SHORT'>}
         """
-        print(self.margin_available)
-        print(trade['Pct of Portfolio'])
-        print(self.leverage)
         units = self.margin_available * trade['Pct of Portfolio'] * self.leverage
         
-        pprint(self._place_order(_type='limit', 
+        self._place_order(_type='limit', 
                         units=floor(units * trade['TP1 vs TP2 Split']), 
                         side=trade['Type of Trade'],
                         instrument=self.instrument, 
                         price=trade['Entry Price'], 
                         stop_loss=trade['Stop Loss'],
-                        take_profit=trade['Target Price 1']))
+                        take_profit=trade['Target Price 1'])
         
-        pprint(self._place_order(_type='limit', 
+        self._place_order(_type='limit', 
                         units=floor(units * (1 - trade['TP1 vs TP2 Split'])), 
                         side=trade['Type of Trade'],
                         instrument=self.instrument, 
                         price=trade['Entry Price'], 
                         stop_loss=trade['Stop Loss'],
-                        take_profit=trade['Target Price 2']))
+                        take_profit=trade['Target Price 2'])
         
+        print('\nNew orders opened.')
+        print('Entry price: {}'.format(trade['Entry Price']))
+        print('Stop Loss: {}'.format(trade['Stop Loss']))
+        print('Take profits: {} , {}'.format(trade['Target Price 1'],
+                                             trade['Target Price 2']))
     
     def _place_order(self, _type='market', units=1000, side='LONG',
                     instrument='EUR_USD', price=None, stop_loss=None,
@@ -102,7 +104,6 @@ class Trader:
                                           ).data
             order = orders.OrderCreate(accountID=self.accountID, data=stopOrder)
         elif _type == 'limit':
-            print()
             limitOrder = LimitOrderRequest(instrument=instrument,
                                           units=units,
                                           price=price,
@@ -119,7 +120,6 @@ if __name__ == "__main__":
     For testing purposes.
     """
     import oandapyV20
-    from pprint import pprint
     
     instrument='USD_JPY'
     accountID = '101-001-1407695-002' 

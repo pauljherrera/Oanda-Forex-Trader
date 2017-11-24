@@ -60,6 +60,9 @@ class Strategy(Subscriber):
         scheduler.add_job(self.update_dfs, trigger='cron',
                           minute='*/{}'.format(self.ETF))
         scheduler.start()
+        
+        # Calling on bar.
+        self.on_ETF_bar(self.ETF_df, self.ETF1_df)
 
     def update(self, message):
         #Extracting the data in order to build the dataframe
