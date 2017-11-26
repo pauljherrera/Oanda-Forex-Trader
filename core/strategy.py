@@ -101,7 +101,7 @@ class Strategy(Subscriber):
         temp_df.set_index('time', drop=True, inplace=True)
 
         self.live_df = pd.concat([self.live_df, temp_df])
-        print(self.live_df)
+        #print(self.live_df)
 
     def on_ETF_bar(self, ETF_df, ETF1_df):
         """
