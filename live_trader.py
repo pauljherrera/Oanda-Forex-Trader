@@ -29,8 +29,8 @@ if __name__ == "__main__":
     access_token = configuration['Token']
     instrument = configuration['Instrument']
     headers = {'instrument': instrument,
-                'params': {'granularity':"M{}".format(configuration['ETF']), 
-                           'count':1000},
+                'params': {'granularity':configuration['ETF'], 
+                           'count':5000},
                 'access_token': access_token,
                 'environment':environment,
                 'ETF1': configuration['ETF1'],
@@ -39,12 +39,11 @@ if __name__ == "__main__":
     # Instantiate classes.
     client = oandapyV20.API(access_token=access_token, 
                             environment="practice")
-    trader = Trader(accountID=accountID, api_client=client, 
-                    instrument=instrument)
     data_feeder = OandaDataFeeder(accountID=accountID, 
                             api_client=client)   
-    strategy = CustomStrategy(**headers)
-    strategy.trader = trader
+    trader = Trader(accountID=accountID, api_client=client, 
+                    instrument=instrument)
+    strategy = CustomStrategy(trader=trader, **headers)
     data_feeder.pub.register('new_data', strategy)
     
     # Start data feeder.

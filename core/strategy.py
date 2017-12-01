@@ -15,7 +15,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.pub_sub import Subscriber
-from core.helpers.resampler import resample_ohlcv, concat_ohlc
+from core.helpers.resampler import concat_ohlc
 
 class Strategy(Subscriber):
     """
@@ -29,9 +29,15 @@ class Strategy(Subscriber):
         self.instrument = kwargs['instrument']
         self.access_token = kwargs['access_token']
         self.environment = kwargs['environment']
-        self.ETF1 = '{}T'.format(kwargs['ETF1'])
+        self.ETF1 = kwargs['ETF1']
         self.ETF = kwargs['ETF']
         self.columns=['Date','O','H','L','C']
+        
+        self.timeframes = {'M1': '1T', 'M2': '2T', 'M3': '3T', 'M4': '4T', 
+                           'M5': '5T', 'M10': '10T', 'M15': '15T', 'M30': '30T', 
+                           'H1': '60T', 'H2': '2H', 'H3': '3H', 'H4': '4H', 
+                           'H6': '6H', 'H8': '8H', 'H12': '12H'}
+                    
 
         #creating the live dataframe
         self.live_df = pd.DataFrame(columns=['time', 'price', 'liquidity'])
@@ -39,10 +45,10 @@ class Strategy(Subscriber):
         self.live_df.set_index('time', drop=True, inplace = True)
 
         #request responses and dataframe laod
-        data = self.request_data()
+        data = self.request_data(self.ETF)
         self.ETF_df = self.load_df(data)
 
-        data1 = self.request_data()
+        data1 = self.request_data(self.ETF1)
         self.ETF1_df = self.load_df(data1)
 
 #        print(" \nM5 DATAFRAME: \n {} \nM15 DATAFRAME: \n {}".format(self.ETF_df,
@@ -54,14 +60,21 @@ class Strategy(Subscriber):
 
         #period of live dataframe
         scheduler = BackgroundScheduler()
-        scheduler.add_job(self.update_dfs, trigger='cron',
-                          minute='*/{}'.format(self.ETF))
+        if self.ETF[0] == 'M':
+            scheduler.add_job(self.update_dfs, trigger='cron',
+                              minute='*/{}'.format(self.ETF[1]))
+        elif self.ETF[0] == 'H':
+            scheduler.add_job(self.update_dfs, trigger='cron',
+                              hour='*/{}'.format(self.ETF[1]))
         scheduler.start()
 
-        # Calling on bar.
+        # Saving csv and calling on bar
+        self.TEMP_df.to_csv('ETF.csv', index=False)
+        self.TEMP1_df.to_csv('ETF1.csv', index=False)
         self.on_ETF_bar(self.TEMP_df,self.TEMP1_df)
 
-    def request_data(self):
+    def request_data(self, timeframe):
+        self.params['granularity'] = timeframe
         res = instruments.InstrumentsCandles(instrument=self.instrument, params=self.params)
         client = oandapyV20.API(access_token=self.access_token, environment=self.environment)
         client.request(res)
@@ -112,7 +125,7 @@ class Strategy(Subscriber):
 
     def update_dfs(self):
         # Updating ETF dataframe.
-        rule = '{}T'.format(self.ETF)
+        rule = self.timeframes[self.ETF]
         resample_df = self.live_df['price'].resample(rule).ohlc().ffill()
         resample_df.columns = ['O','H','L','C']
         #print(resample_df)
@@ -120,27 +133,35 @@ class Strategy(Subscriber):
         ETF_df = self.format_df(self.ETF_df)
 
         # Updating ETF dataframe.
-        resample_df = self.live_df['price'].resample(self.ETF1).ohlc().ffill()
+        rule = self.timeframes[self.ETF1]
+        resample_df = self.live_df['price'].resample(rule).ohlc().ffill()
         resample_df.columns = ['O','H','L','C']
 
         self.ETF1_df = concat_ohlc(self.ETF1_df, resample_df)
         ETF1_df = self.format_df(self.ETF1_df)
 
+        # Saving csv and calling on_bar.
+        ETF_df.to_csv('ETF.csv', index=False)
+        ETF1_df.to_csv('ETF1.csv', index=False)
         self.on_ETF_bar(ETF_df, ETF1_df)
 
 
 if __name__ == "__main__":
-    """testing"""
+    """For testing purposes"""
     from core.data_feeder import OandaDataFeeder
 
     #parameters set-up
-    headers = {'instrument': 'GBP_USD',
-                'params': {'granularity':"D", 'count': 200}, #number of days in the dataframe
-                'access_token': 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c',
+    accountID = '101-001-1407695-002'
+    access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
+
+    headers = {'instrument': 'EUR_USD',
+                'params': {'granularity':"M", 
+                           'count':5000},
+                'access_token': access_token,
                 'environment':'practice',
-                'ETF1': 15,
-                'ETF': 5} #minutes | period of live dataframe
-    #'accountID' = '101-001-1407695-002'
+                'ETF1': 'M15',
+                'ETF': 'M5'} 
+                
     message = {'bids': [{'liquidity': 10000000, 'price': '1.33045'}],
         'instrument': 'GBP_USD', 'tradeable': True,
         'asks': [{'liquidity': 10000000, 'price': '1.33097'}],
@@ -148,8 +169,6 @@ if __name__ == "__main__":
         'type': 'PRICE', 'closeoutBid': '1.33020'}
 
 
-    accountID = '101-001-1407695-002'
-    access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
     client = oandapyV20.API(access_token=access_token, environment="practice")
     instrument='GBP_USD'
 
