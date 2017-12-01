@@ -32,12 +32,12 @@ class Strategy(Subscriber):
         self.ETF1 = kwargs['ETF1']
         self.ETF = kwargs['ETF']
         self.columns=['Date','O','H','L','C']
-        
-        self.timeframes = {'M1': '1T', 'M2': '2T', 'M3': '3T', 'M4': '4T', 
-                           'M5': '5T', 'M10': '10T', 'M15': '15T', 'M30': '30T', 
-                           'H1': '60T', 'H2': '2H', 'H3': '3H', 'H4': '4H', 
+
+        self.timeframes = {'M1': '1T', 'M2': '2T', 'M3': '3T', 'M4': '4T',
+                           'M5': '5T', 'M10': '10T', 'M15': '15T', 'M30': '30T',
+                           'H1': '60T', 'H2': '2H', 'H3': '3H', 'H4': '4H',
                            'H6': '6H', 'H8': '8H', 'H12': '12H'}
-                    
+
 
         #creating the live dataframe
         self.live_df = pd.DataFrame(columns=['time', 'price', 'liquidity'])
@@ -109,7 +109,7 @@ class Strategy(Subscriber):
         columns_n=['time','price' ,'liquidity']
 
         temp_df = pd.DataFrame([new_element], columns=columns_n)
-        temp_df['time']= pd.to_datetime(temp_df['time'])
+        temp_df['time'] = pd.to_datetime(temp_df['time'])
         temp_df['price'] =  temp_df['price'].astype(float)
         temp_df.set_index('time', drop=True, inplace=True)
 
@@ -155,13 +155,13 @@ if __name__ == "__main__":
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
 
     headers = {'instrument': 'EUR_USD',
-                'params': {'granularity':"M", 
+                'params': {'granularity':"M",
                            'count':5000},
                 'access_token': access_token,
                 'environment':'practice',
                 'ETF1': 'M15',
-                'ETF': 'M5'} 
-                
+                'ETF': 'M5'}
+
     message = {'bids': [{'liquidity': 10000000, 'price': '1.33045'}],
         'instrument': 'GBP_USD', 'tradeable': True,
         'asks': [{'liquidity': 10000000, 'price': '1.33097'}],
@@ -177,4 +177,4 @@ if __name__ == "__main__":
 
     strat = Strategy(**headers)
     #strat.update(message)
-    dataf.pub.register('new_data', strat)
+    dataf.pub.register('Oanda_data', strat)

@@ -24,55 +24,50 @@ class OandaDataFeeder:
     def __init__(self, accountID, api_client, *args, **kwargs):
         self.accountID = accountID
         self.client = api_client
-        self.pub = Publisher(['new_data'])
-        
-        
+        self.pub = Publisher(['Oanda_data'])
+
+
     def _live_data(self, instrument='EUR_USD'):
         """
         Subscribes to the stream of data of an instrument.
         """
-        s = pricing.PricingStream(accountID=self.accountID, 
+        s = pricing.PricingStream(accountID=self.accountID,
                                   params={"instruments": instrument})
         try:
             for resp in self.client.request(s):
                 self.filter_data(resp)
-        
+
         except V20Error as e:
             print("Error: {}".format(e))
 
-        
+
     def filter_data(self, data):
         """
         Filters the necessary data and publishes it.
         """
         if data['type'] == 'PRICE':
-            self.pub.dispatch('new_data', data)
-            
-        
+            self.pub.dispatch('Oanda_data', data)
+
+
     def get_live_data(self, instrument='EUR_USD'):
         t = threading.Thread(target=self._live_data, args=(instrument, ))
         t.start()
-        
-            
+
+
 if __name__ == "__main__":
     """
     For testing purposes.
     """
     import oandapyV20
     from core.helpers.pub_sub import Subscriber
-    
-    accountID = '101-001-1407695-002' 
+
+    accountID = '101-001-1407695-002'
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
     client = oandapyV20.API(access_token=access_token, environment="practice")
     instrument='GBP_USD'
     dataf = OandaDataFeeder(accountID, client)
-    
+
     sub = Subscriber('sub')
-    dataf.pub.register('new_data', sub)
-    
+    dataf.pub.register('Oanda_data', sub)
+
     dataf.get_live_data(instrument)
-
-        
-    
-
-

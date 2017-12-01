@@ -41,9 +41,9 @@ if __name__ == "__main__":
         instrument = sys.argv[1].replace("-","")
     except IndexError:
         instrument = configuration['Instrument']
-        
+
     headers = {'instrument': instrument,
-                'params': {'granularity':configuration['ETF'], 
+                'params': {'granularity':configuration['ETF'],
                            'count':1000},
                 'access_token': access_token,
                 'environment':environment,
@@ -54,13 +54,13 @@ if __name__ == "__main__":
     client = oandapyV20.API(access_token=access_token,
                             environment="practice")
 
-    data_feeder = OandaDataFeeder(accountID=accountID, 
-                            api_client=client)   
-    trader = Trader(accountID=accountID, api_client=client, 
+    data_feeder = OandaDataFeeder(accountID=accountID,
+                            api_client=client)
+    trader = Trader(accountID=accountID, api_client=client,
                     instrument=instrument)
     strategy = CustomStrategy(trader=trader, **headers)
 
-    data_feeder.pub.register('new_data', strategy)
+    data_feeder.pub.register('Oanda_data', strategy)
 
     # Start data feeder.
     data_feeder.get_live_data(instrument=instrument)
