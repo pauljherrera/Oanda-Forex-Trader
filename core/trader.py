@@ -107,7 +107,7 @@ class Trader:
                         price=trade['Entry Price'],
                         stop_loss=trade['Stop Loss'],
                         take_profit=trade['Target Price 2'])
-        print(r1, r2)
+#        print(r1, r2)
 
         print('\nNew orders opened.')
         print('Entry price: {}'.format(trade['Entry Price']))
