@@ -4,8 +4,14 @@ Created on Tue Nov 21 17:32:50 2017
 
 @author: Avanti Financial Services.
 """
-import numpy as np
-from core.helpers.format_order import round_values
+
+import sys
+import os
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from math import floor
+from dateutil import parser
+
 import oandapyV20.endpoints.orders as orders
 import oandapyV20.endpoints.accounts as accounts
 from oandapyV20.contrib.requests import (
@@ -15,8 +21,9 @@ from oandapyV20.contrib.requests import (
     TakeProfitDetails,
     StopLossDetails)
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from math import floor
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from core.helpers.format_order import round_values
+
 
 
 class Trader:
@@ -43,6 +50,33 @@ class Trader:
         r = self.client.request(a)
         self.margin_available = float(r['account']['marginAvailable'])
 
+    def cancel_pending_orders(self, date=None):
+        """
+        Cancels the pending limit orders. If a date specified,
+        cancels the orders before that date.
+        Returns the IDs of the canceled orders.
+        """
+        # Retrieving orders.
+        r = orders.OrdersPending(self.accountID)
+        pending_orders = self.client.request(r)
+        limit_orders = [order for order in pending_orders['orders'] 
+                        if order['type'] == 'LIMIT']
+        
+        if date:
+            orders_id = [x['id'] for x in limit_orders 
+                         if parser.parse(x['createTime']).replace(tzinfo=None) <= date]
+        else:
+            orders_id = [x['id'] for x in limit_orders]
+        
+        # Canceling orders.
+        for _id in orders_id:
+            r = orders.OrderCancel(self.accountID, orderID=_id)
+            self.client.request(r)
+        print('{} order(s) canceled.'.format(len(orders_id)))
+        
+        return orders_id
+        
+
     def new_order(self, trade):
         """
         This class will be called by the strategy to place new orders.
@@ -58,7 +92,7 @@ class Trader:
         trade = round_values(trade,self.round_value)
         units = self.margin_available * trade['Pct of Portfolio'] * self.leverage
 
-        self._place_order(_type='limit',
+        r1 = self._place_order(_type='limit',
                         units=floor(units * trade['TP1 vs TP2 Split']),
                         side=trade['Type of Trade'],
                         instrument=self.instrument,
@@ -66,13 +100,14 @@ class Trader:
                         stop_loss=trade['Stop Loss'],
                         take_profit=trade['Target Price 1'])
 
-        self._place_order(_type='limit',
+        r2 = self._place_order(_type='limit',
                         units=floor(units * (1 - trade['TP1 vs TP2 Split'])),
                         side=trade['Type of Trade'],
                         instrument=self.instrument,
                         price=trade['Entry Price'],
                         stop_loss=trade['Stop Loss'],
                         take_profit=trade['Target Price 2'])
+        print(r1, r2)
 
         print('\nNew orders opened.')
         print('Entry price: {}'.format(trade['Entry Price']))
@@ -140,7 +175,7 @@ if __name__ == "__main__":
 
     trade = {'Entry Price': 111.08000000000001,
             'Pct of Portfolio': 0.01,
-            'Stop Loss': 110.86500000000001,
+            'Stop Loss': 110.86554000000001,
             'TP1 vs TP2 Split': 0.3,
             'Target Price 1': 162.93000000000001,
             'Target Price 2': 185.14699999999999,

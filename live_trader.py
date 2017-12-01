@@ -19,7 +19,16 @@ class CustomStrategy(Strategy):
         """
         print('New bar')
         print(ETF_df, ETF1_df)
-
+        trade = {'Entry Price': 111.08000000000001,
+                'Pct of Portfolio': 0.01,
+                'Stop Loss': 110.86554000000001,
+                'TP1 vs TP2 Split': 0.3,
+                'Target Price 1': 162.93000000000001,
+                'Target Price 2': 185.14699999999999,
+                'Type of Trade': 'LONG',
+                'zone_index': 1193}
+        self.trader.new_order(trade)
+        self.trader.cancel_pending_orders()
 
 
 
@@ -28,7 +37,11 @@ if __name__ == "__main__":
     environment = configuration['Environment']
     accountID = configuration['AccountID']
     access_token = configuration['Token']
-    instrument = sys.argv[1].replace("-","")
+    try:
+        instrument = sys.argv[1].replace("-","")
+    except IndexError:
+        instrument = configuration['Instrument']
+        
     headers = {'instrument': instrument,
                 'params': {'granularity':"M{}".format(configuration['ETF']),
                            'count':1000},
@@ -44,7 +57,7 @@ if __name__ == "__main__":
                     instrument=instrument)
     data_feeder = OandaDataFeeder(accountID=accountID,
                             api_client=client)
-    strategy = CustomStrategy(**headers)
+    strategy = CustomStrategy(trader=trader, **headers)
     strategy.trader = trader
     data_feeder.pub.register('new_data', strategy)
 
