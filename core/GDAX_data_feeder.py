@@ -11,7 +11,7 @@ from core.helpers.pub_sub import Publisher, Subscriber
 from core.helpers.gdax_auth import Authentication
 
 
-class GDAXWebSocketClient():
+class GDAXClient():
 
     def __init__(self,data,channels=[]):
         self.url = "wss://ws-feed.gdax.com"
@@ -24,7 +24,6 @@ class GDAXWebSocketClient():
     def on_message(self, message):
         if message['type'] == "match":
             self.pub.dispatch('GDAX_data', message)
-
     def on_open(self):
         print("--Subscribed--")
 
@@ -55,19 +54,19 @@ class GDAXWebSocketClient():
 def main():
     pairs=["BTC-USD"]
 
-    API_KEY = ""
-    API_SECRET = ""
-    API_PASS = ""
+    API_KEY = "c2c736241299f78327809504d2ffb0e7"
+    API_SECRET = "si3b5hm7609"
+    API_PASS = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
 
     auth=Authentication(API_KEY, API_SECRET, API_PASS)
     request = {"type": "subscribe",
             "channels": [{"name": "full", "product_ids": pairs }]}
-    res = requests.get('https://api.gdax.com/'+ 'accounts', auth=auth)
+    #res = requests.get('https://api.gdax.com/'+ 'accounts', auth=auth)
     #test page example
-    print(res.json())
+    #print(res.json())
 
 
-    ws=GDAXWebSocketClient(request,pairs)
+    ws=GDAXClient(request,pairs)
     ws.connect()
 if __name__=="__main__":
     main()

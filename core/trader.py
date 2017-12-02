@@ -23,10 +23,10 @@ from oandapyV20.contrib.requests import (
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.format_order import round_values
+from core.helpers.gdax_api import GDAX_Handler
+from core.helpers.gdax_auth import Authentication
 
-
-
-class Trader:
+class OandaTrader:
     """
     Makes trades operations using the Oanda API wrapper.
     """
@@ -59,23 +59,23 @@ class Trader:
         # Retrieving orders.
         r = orders.OrdersPending(self.accountID)
         pending_orders = self.client.request(r)
-        limit_orders = [order for order in pending_orders['orders'] 
+        limit_orders = [order for order in pending_orders['orders']
                         if order['type'] == 'LIMIT']
-        
+
         if date:
-            orders_id = [x['id'] for x in limit_orders 
+            orders_id = [x['id'] for x in limit_orders
                          if parser.parse(x['createTime']).replace(tzinfo=None) <= date]
         else:
             orders_id = [x['id'] for x in limit_orders]
-        
+
         # Canceling orders.
         for _id in orders_id:
             r = orders.OrderCancel(self.accountID, orderID=_id)
             self.client.request(r)
         print('{} order(s) canceled.'.format(len(orders_id)))
-        
+
         return orders_id
-        
+
 
     def new_order(self, trade):
         """
@@ -153,6 +153,39 @@ class Trader:
 
         return self.client.request(order)
 
+class GDAXTrader(GDAX_Handler):
+    def place_order(self, _type='limit', size='0.01', side='buy',
+                    product_id='BTC-USD', price=None, verbose=True):
+        order = super().place_order(_type=_type, size=size, side=side,
+                                    product_id=product_id, price=price,
+                                    verbose=verbose)
+        self.last_order = order
+
+    def close_last_order(self):
+        # Setting parameters.
+        if self.order_dict['side'] == 'buy':
+            side = 'sell'
+        elif self.order_dict['side'] == 'sell':
+            side = 'buy'
+        size = self.order_dict['size']
+        product_id = self.order_dict['product_id']
+
+        # Placing trade.
+        order = self.place_order(size=size, side=side, product_id=product_id,
+                                 verbose=False)
+        self.last_order = order
+
+        super().close_last_order()
+
+    def list_orders(self,product_id = 'BTC-USD', status = ['open']):
+
+        orders = super().list_orders(product_id = product_id, status = status)
+
+        return orders
+
+    def cancel_pending_orders(self, date=None):
+        res = super().cancel_pending_orders(date)
+        print('{} order(s) canceled.'.format(res))
 
 if __name__ == "__main__":
     """
@@ -164,7 +197,7 @@ if __name__ == "__main__":
     accountID = '101-001-1407695-002'
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
     client = oandapyV20.API(access_token=access_token, environment="practice")
-    trader = Trader(accountID, client, instrument=instrument)
+    trader = OandaTrader(accountID, client, instrument=instrument)
 
     units = 10000
     _type = 'limit'
@@ -183,3 +216,12 @@ if __name__ == "__main__":
             'zone_index': 1193}
 
     trader.new_order(trade)
+
+
+    API_key = 'c2c736241299f78327809504d2ffb0e7'
+    passphrase = 'si3b5hm7609'
+    secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+
+    # Instantianting the objects needed.
+    auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
+    trader = GDAXTrader(auth=auth)
