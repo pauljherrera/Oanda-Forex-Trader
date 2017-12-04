@@ -16,7 +16,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.pub_sub import Subscriber
 from core.helpers.resampler import concat_ohlc
-
+from core.trader import GDAXTrader as GDT
 class Strategy(Subscriber):
     """
     Abstract class that will be inherited by the custom strategy of the user
@@ -104,6 +104,10 @@ class Strategy(Subscriber):
     def update(self, message):
         #Extracting the data in order to build the dataframe
         bid_data =  message['bids'].pop()
+
+        #Check for price in order to send stop loss or take profit orders
+        GTD.check_position(message)
+
         time = message['time']
         new_element = [time , bid_data['price'], bid_data['liquidity']]
         columns_n=['time','price' ,'liquidity']

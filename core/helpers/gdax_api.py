@@ -52,9 +52,13 @@ class GDAX_Handler:
         order_dict['size'] = size
         order_dict['side'] = side
         order_dict['product_id'] = product_id
+
         if _type == 'limit':
             order_dict['price'] = price
             assert(order_dict['price'] != None)
+        elif _type == 'stop':
+            order_dict = {'type':order_dict['type'],
+                        'size':order_dict['size'],}
 
         self.order_dict = order_dict
 
@@ -132,7 +136,7 @@ class GDAX_Handler:
     def margin_available(self):
         r = requests.get(self.url + '/accounts', auth=self.auth)
         available = float(r.json()['available'])
-        self.margin_available = available
+        return available
 
 if __name__ == '__main__':
     # API keys.
