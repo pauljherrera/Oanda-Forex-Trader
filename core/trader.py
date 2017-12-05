@@ -12,6 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from math import floor
 from dateutil import parser
 import numpy as np
+import pandas as pd
 
 import oandapyV20.endpoints.orders as orders
 import oandapyV20.endpoints.accounts as accounts
@@ -26,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.format_order import round_values
 from core.helpers.gdax_api import GDAX_Handler
 from core.helpers.gdax_auth import Authentication
+from core.helpers.order_book import get_dataframe
 
 class OandaTrader:
     """
@@ -156,7 +158,15 @@ class OandaTrader:
 
 class GDAXTrader(GDAX_Handler):
 
+    def __init__(self):
+
+        self.columns = ['created_at','id', 'Price', 'Stop Loss',
+                        'Target Price','size','status']
+
+        self.order_df = pd.DataFrame(columns=self.columns)
+
     def new_order(self, trade):
+
         """
         {'Entry Price': float,
         'Pct of Portfolio': float,
@@ -166,25 +176,27 @@ class GDAXTrader(GDAX_Handler):
         'Target Price 2': float,
         'Type of Trade': <'LONG'/'SHORT'>}
         """
+
         size = round(super().margin_available() * trade['Pct of Portfolio'], 5)
         self.stop_l = trade['Stop Loss']
         self.target_1 = trade['Target Price 1']
         self.target_2 = trade['Target Price 2']
-        ord_1 = self.place_order(
-                                _type = 'limit',
-                                size = size * trade['TP1 vs TP2 Split'],
-                                side = 'buy',
-                                product_id = GDAX_Handler.order_dict['product_id'] ,
-                                price = trade['Entry Price'],
-                                verbose=True):
 
-        ord_2 = self.place_order(
-                                _type = 'limit',
-                                size = size * (1 - trade['TP1 vs TP2 Split']),
-                                side = 'buy',
-                                product_id = GDAX_Handler.order_dict['product_id'] ,
-                                price = trade['Entry Price'],
-                                verbose=True)
+        r1 = self.place_order(
+                            _type = 'limit',
+                            size = size * trade['TP1 vs TP2 Split'],
+                            side = 'buy',
+                            product_id = GDAX_Handler.order_dict['product_id'] ,
+                            price = trade['Entry Price'],
+                            verbose=True)
+
+        r2 = self.place_order(
+                            _type = 'limit',
+                            size = size * (1 - trade['TP1 vs TP2 Split']),
+                            side = 'buy',
+                            product_id = GDAX_Handler.order_dict['product_id'],
+                            price = trade['Entry Price'],
+                            verbose=True)
 
         print('\nNew orders opened.')
         print('Entry price: {}'.format(trade['Entry Price']))
@@ -192,6 +204,25 @@ class GDAXTrader(GDAX_Handler):
         print('Take profits: {} , {}'.format(trade['Target Price 1'],
                                              trade['Target Price 2']))
 
+
+        r1 = json.loads(r1.text)
+        r2 = json.loads(r2.text)
+        """
+            creating dataframe to get a record of the orders
+            And the values of stop loss and target price to execute
+            them precisely
+        """
+
+        r1['Stop Loss'] = self.target_1
+        r1['Target Price'] = self.target_1
+
+        r2['Stop Loss'] = self.target_2
+        r2['Target Price'] = self.target_2
+
+
+        new_ords = get_dataframe(r1,r2,self.columns)
+
+        self.order_df = pd.concat([self.order_df, new_ords])
 
     def place_order(self, _type='limit', size='0.01', side='buy',
                     product_id='BTC-USD', price=None, verbose=True):
@@ -226,15 +257,16 @@ class GDAXTrader(GDAX_Handler):
         res = super().cancel_pending_orders(date)
         print('{} order(s) canceled.'.format(res))
 
-    def check_position(self, data):
-        price = message['bids']['price']
-        target1 = self.target_1
-        target2 = self.target_2
-        if price <= self.stop_l:
-            #execute stop order
-        elif price >= target1:
-            #how to know if target1 or target 2? depends of new_order()?
-        elif price >= target2:
+    def check_position(self, tick):
+        #check which orders comply with their corresponding...
+        #Stop Loss and Target price values and real time data
+
+        data = self.order_df
+        price = tick['price']
+        if price <= #stoploss:
+            #sells in that price
+        elif:
+            #sells to take profit
 
 
 if __name__ == "__main__":
@@ -242,9 +274,7 @@ if __name__ == "__main__":
     For testing purposes.
     """
     import oandapyV20
-    """
-    Hay una limit order pendiente? si ya se lleno, verificamos stop loss y take profit
-    """
+
     instrument='USD_JPY'
     accountID = '101-001-1407695-002'
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
@@ -276,4 +306,4 @@ if __name__ == "__main__":
 
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
-    GDAX_trader = GDAXTrader(auth=auth)
+    GDAX_trader = GDAXTrader()

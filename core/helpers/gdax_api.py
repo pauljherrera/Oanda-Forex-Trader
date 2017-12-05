@@ -58,7 +58,7 @@ class GDAX_Handler:
             assert(order_dict['price'] != None)
         elif _type == 'stop':
             order_dict = {'type':order_dict['type'],
-                        'size':order_dict['size'],}
+                        'size':order_dict['size'],'price':order_dict}
 
         self.order_dict = order_dict
 
