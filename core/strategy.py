@@ -110,7 +110,7 @@ class Strategy(Subscriber):
 
         time = message['time']
         new_element = [time , bid_data['price'], bid_data['liquidity']]
-        columns_n=['time','price' ,'liquidity']
+        columns_n=['time', 'price' , 'liquidity']
 
         temp_df = pd.DataFrame([new_element], columns=columns_n)
         temp_df['time'] = pd.to_datetime(temp_df['time'])

@@ -160,9 +160,9 @@ class GDAXTrader(GDAX_Handler):
 
     def __init__(self):
 
-        self.columns = ['created_at','id', 'Price', 'Stop Loss',
-                        'Target Price','size','status']
-
+        self.columns = ['created_at', 'id', 'Price', 'Stop Loss',
+                        'Target Price', 'size', 'status']
+        self.url = "https://api.gdax.com"
         self.order_df = pd.DataFrame(columns=self.columns)
 
     def new_order(self, trade):
@@ -213,16 +213,17 @@ class GDAXTrader(GDAX_Handler):
             them precisely
         """
 
-        r1['Stop Loss'] = self.target_1
+        r1['Stop Loss'] = self.stop_l
         r1['Target Price'] = self.target_1
 
-        r2['Stop Loss'] = self.target_2
+        r2['Stop Loss'] = self.stop_l
         r2['Target Price'] = self.target_2
 
 
         new_ords = get_dataframe(r1,r2,self.columns)
 
         self.order_df = pd.concat([self.order_df, new_ords])
+
 
     def place_order(self, _type='limit', size='0.01', side='buy',
                     product_id='BTC-USD', price=None, verbose=True):
@@ -258,15 +259,50 @@ class GDAXTrader(GDAX_Handler):
         print('{} order(s) canceled.'.format(res))
 
     def check_position(self, tick):
-        #check which orders comply with their corresponding...
-        #Stop Loss and Target price values and real time data
+        """
+            check which orders comply with their corresponding...
+            Stop Loss and Target price values and real time data
 
+            if there's is stop loss values that match with the specified in the trade parameters:
+                search in the df the orders with the correspondent stop loss value and
+                the status "done" in order to place a stop order with
+                the size of the 'filled_size' in the original limit order
+
+            same with target price, in this one the order will be of type limit
+
+        """
         data = self.order_df
         price = tick['price']
-        if price <= #stoploss:
-            #sells in that price
-        elif:
-            #sells to take profit
+
+        if len(data.index) != 0:
+            self.stop_orders = data.loc[price <= data['Stop Loss']]\
+                                        [['id','Stop Loss','size']]
+            self.target_orders = data.loc[price >= data['Target Price']]\
+                                        [['id','Target Price']]
+
+            if len(self.stop_orders.index) != 0:
+                for index,row in self.stop_orders.iterrows():
+                    #getting the actual status of each order
+                    r = requests.get(self.url + '/orders/{}'.format(row['id']))
+                    r = json.loads(r.text)
+                    if r['status'] == 'done':
+                        self.place_order(_type='stop', side='sell',
+                                            price=row['Stop Loss'],
+                                            size=r['filled_size'])
+                        #deletes the orders with status done and processed
+                        self.order_df = self.order_df[self.order_df['id'] != row['id']]
+
+            if  len(self.target_orders.index) != 0:
+                for index,row in self.target_orders.iterrows():
+                    r = requests.get(self.url + '/orders/{}'.format(row['id']))
+                    r = json.loads(r.text)
+                    if r['status'] == 'done':
+                        self.place_order(_type='limit', side='sell',
+                                            price=row['Target Price'],
+                                            size=r['filled_size'])
+                        self.order_df = self.order_df[self.order_df['id'] != row['id']]
+
+
 
 
 if __name__ == "__main__":
@@ -300,9 +336,9 @@ if __name__ == "__main__":
     trader.new_order(trade)
 
 
-    API_key = 'c2c736241299f78327809504d2ffb0e7'
-    passphrase = 'si3b5hm7609'
-    secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    API_key = ''
+    passphrase = ''
+    secret = ''
 
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
