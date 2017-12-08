@@ -32,5 +32,9 @@ class Publisher:
         if channel == 'GDAX_data':
             message['bids'] = [{'liquidity' : float(message['size']),
                                 'price' : message['price']}]
+            message['Channel'] = "GDAX_data"
+        else:
+            message['Channel'] = "Oanda_data"
+
         for subscriber, callback in self.get_subscribers(channel).items():
             callback(message)

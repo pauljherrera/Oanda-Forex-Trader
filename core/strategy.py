@@ -6,8 +6,9 @@ Created on Tue Nov 21 19:31:51 2017
 """
 import sys
 import os
+import gdax
 import pandas as pd
-
+import datetime as dt
 import oandapyV20.endpoints.instruments as instruments
 import oandapyV20
 
@@ -17,46 +18,76 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.pub_sub import Subscriber
 from core.helpers.resampler import concat_ohlc
 from core.trader import GDAXTrader as GDT
+from core.helpers.gdax_data_downloader import get_historic_rates
+
 class Strategy(Subscriber):
     """
     Abstract class that will be inherited by the custom strategy of the user
     in Oanda_Trader/live_trader.py
     Uses an instance of Trader for placing trades.
     """
-    def __init__(self, trader=None, *args, **kwargs):
+    def __init__(self, platform="GDAX", trader=None, *args, **kwargs):
         self.trader = trader
-        self.params = kwargs['params']
+        self.columns=['Date','O','H','L','C']
         self.instrument = kwargs['instrument']
-        self.access_token = kwargs['access_token']
-        self.environment = kwargs['environment']
+        self.data_days = kwargs['data days']
+        m = 60
+        h = 3600
+        #self.timeframes = {'M1': '1T', 'M2': '2T', 'M3': '3T', 'M4': '4T',
+        #                   'M5': '5T', 'M10': '10T', 'M15': '15T', 'M30': '30T',
+        #                   'H1': '60T', 'H2': '2H', 'H3': '3H', 'H4': '4H',
+        #                   'H6': '6H', 'H8': '8H', 'H12': '12H'}
+
+        self.timeframes = {'M1':1*m, 'M2':2*m , 'M3':3*m, 'M4':4*m,
+                           'M5':5*m, 'M10':10*m, 'M15':15*m, 'M30':30*m,
+                           'H1':1*h, 'H2':2*h, 'H3':3*h, 'H4':4*h,
+                           'H6':6*h , 'H8':8*h , 'H12':12*h}
+
         self.ETF1 = kwargs['ETF1']
         self.ETF = kwargs['ETF']
-        self.columns=['Date','O','H','L','C']
 
-        self.timeframes = {'M1': '1T', 'M2': '2T', 'M3': '3T', 'M4': '4T',
-                           'M5': '5T', 'M10': '10T', 'M15': '15T', 'M30': '30T',
-                           'H1': '60T', 'H2': '2H', 'H3': '3H', 'H4': '4H',
-                           'H6': '6H', 'H8': '8H', 'H12': '12H'}
+        if platform == "Oanda":
+            measure = 'liquidity'
+            self.params = kwargs['params']
+            self.access_token = kwargs['access_token']
+            self.environment = kwargs['environment']
+
+            #request responses and dataframe load
+            data = self.request_data(self.ETF)
+            self.ETF_df = self.load_df(data)
+
+            data1 = self.request_data(self.ETF1)
+            self.ETF1_df = self.load_df(data1)
+
+            #format required by the user
+            self.TEMP_df = self.format_df(self.ETF_df)
+            self.TEMP1_df = self.format_df(self.ETF1_df)
+
+            self.TEMP_df = self.ETF_df
+            self.TEMP1_df = self.ETF1_df
+
+        elif platform == "GDAX":
+            measure = 'size'
+            timeframe_1 = self.timeframes[self.ETF]
+            timeframe_2 = self.timeframes[self.ETF1]
+            self.client = gdax.PublicClient()
+
+            self.ETF_df = self.load_gdax_df(timeframe_1, self.instrument)
+            self.ETF1_df = self.load_gdax_df(timeframe_2, self.instrument)
+
+            self.TEMP_df = self.ETF_df
+            self.TEMP1_df = self.ETF1_df
 
 
         #creating the live dataframe
-        self.live_df = pd.DataFrame(columns=['time', 'price', 'liquidity'])
+        self.live_df = pd.DataFrame(columns=['time', 'price', measure])
         self.live_df['time'] = pd.to_datetime(self.live_df['time'], format="%Y-%m-%dT%H:%M:%SZ")
         self.live_df.set_index('time', drop=True, inplace = True)
 
-        #request responses and dataframe laod
-        data = self.request_data(self.ETF)
-        self.ETF_df = self.load_df(data)
-
-        data1 = self.request_data(self.ETF1)
-        self.ETF1_df = self.load_df(data1)
-
-#        print(" \nM5 DATAFRAME: \n {} \nM15 DATAFRAME: \n {}".format(self.ETF_df,
-#                                                                   self.ETF1_df))
-
+        print(self.ETF_df)
+        print(self.ETF1_df)
         #format required by the user
-        self.TEMP_df = self.format_df(self.ETF_df)
-        self.TEMP1_df = self.format_df(self.ETF1_df)
+
 
         #period of live dataframe
         scheduler = BackgroundScheduler()
@@ -72,6 +103,27 @@ class Strategy(Subscriber):
         self.TEMP_df.to_csv('ETF.csv', index=False)
         self.TEMP1_df.to_csv('ETF1.csv', index=False)
         self.on_ETF_bar(self.TEMP_df,self.TEMP1_df)
+
+
+    def load_gdax_df(self, granularity, product):
+        today = dt.date.today()
+        start_date_str = (today - dt.timedelta(days=self.data_days)).isoformat()
+        end_date_str = (today + dt.timedelta(days=1)).isoformat()
+        print('\nGetting historical data')
+        hist_df = get_historic_rates(self.client, product=self.instrument,
+                         start_date=start_date_str, end_date=end_date_str,
+                         granularity=granularity, beautify=False)
+        hist_df = hist_df[['time','open', 'high', 'low', 'close', 'volume']]
+        del hist_df['volume']
+
+        hist_df.columns = ['Date', 'O', 'H', 'L', 'C']
+        hist_df['Date'] = pd.to_datetime(hist_df['Date'], unit='s')
+        hist_df.set_index('Date', inplace=True)
+        hist_df.sort_index(inplace=True)
+        hist_df = hist_df.groupby(hist_df.index).first()
+
+        return hist_df
+
 
     def request_data(self, timeframe):
         self.params['granularity'] = timeframe
@@ -106,7 +158,8 @@ class Strategy(Subscriber):
         bid_data =  message['bids'].pop()
 
         #Check for price in order to send stop loss or take profit orders
-        GTD.check_position(message)
+        if message['Channel'] == "GDAX_data":
+            GTD.check_position(message)
 
         time = message['time']
         new_element = [time , bid_data['price'], bid_data['liquidity']]
@@ -158,13 +211,14 @@ if __name__ == "__main__":
     accountID = '101-001-1407695-002'
     access_token = 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c'
 
-    headers = {'instrument': 'EUR_USD',
+    headers = {'instrument': 'BTC-USD',
                 'params': {'granularity':"M",
                            'count':5000},
                 'access_token': access_token,
                 'environment':'practice',
                 'ETF1': 'M15',
-                'ETF': 'M5'}
+                'ETF': 'M5',
+                'data days':2}
 
     message = {'bids': [{'liquidity': 10000000, 'price': '1.33045'}],
         'instrument': 'GBP_USD', 'tradeable': True,
@@ -173,12 +227,12 @@ if __name__ == "__main__":
         'type': 'PRICE', 'closeoutBid': '1.33020'}
 
 
-    client = oandapyV20.API(access_token=access_token, environment="practice")
-    instrument='GBP_USD'
+    #client = oandapyV20.API(access_token=access_token, environment="practice")
+    #instrument='GBP_USD'
+    platform = "GDAX"
+    #dataf = OandaDataFeeder(accountID, client)
+    #dataf.get_live_data(instrument)
 
-    dataf = OandaDataFeeder(accountID, client)
-    dataf.get_live_data(instrument)
-
-    strat = Strategy(**headers)
+    strat = Strategy(platform,**headers)
     #strat.update(message)
-    dataf.pub.register('Oanda_data', strat)
+    #dataf.pub.register('Oanda_data', strat)

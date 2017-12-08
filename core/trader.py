@@ -162,7 +162,7 @@ class GDAXTrader(GDAX_Handler):
 
         self.columns = ['created_at', 'id', 'Price', 'Stop Loss',
                         'Target Price', 'size', 'status']
-        self.url = "https://api.gdax.com"
+        self.url = GDAX_Handler.url
         self.order_df = pd.DataFrame(columns=self.columns)
 
     def new_order(self, trade):
@@ -218,7 +218,6 @@ class GDAXTrader(GDAX_Handler):
 
         r2['Stop Loss'] = self.stop_l
         r2['Target Price'] = self.target_2
-
 
         new_ords = get_dataframe(r1,r2,self.columns)
 
