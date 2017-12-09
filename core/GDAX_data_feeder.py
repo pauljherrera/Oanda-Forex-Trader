@@ -6,12 +6,14 @@ import time , hmac, hashlib, base64
 from websocket import create_connection
 from requests.auth import AuthBase
 import requests
+import threading
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.helpers.pub_sub import Publisher, Subscriber
 from core.helpers.gdax_auth import Authentication
 
 
-class GDAXClient():
+class GDAXDataFeeder():
 
     def __init__(self,data,channels=[]):
         self.url = "wss://ws-feed.gdax.com"
@@ -51,8 +53,12 @@ class GDAXClient():
             except Exception as e:
                 self.on_error(e)
 
+    def start_live_data(self):
+        t = threading.Thread(target=self.connect)
+        t.start()
+
 def main():
-    pairs=["BTC-USD"]
+    channels=["BTC-USD"]
 
     API_KEY = "c2c736241299f78327809504d2ffb0e7"
     API_SECRET = "si3b5hm7609"
@@ -60,13 +66,16 @@ def main():
 
     auth=Authentication(API_KEY, API_SECRET, API_PASS)
     request = {"type": "subscribe",
-            "channels": [{"name": "full", "product_ids": pairs }]}
+            "channels": [{"name": "full",
+                        "product_ids": channels }]}
+
     #res = requests.get('https://api.gdax.com/'+ 'accounts', auth=auth)
     #test page example
     #print(res.json())
 
 
-    ws=GDAXClient(request,pairs)
-    ws.connect()
+    feeder = GDAXDataFeeder(request,channels)
+    feeder.start_live_data()
+
 if __name__=="__main__":
     main()

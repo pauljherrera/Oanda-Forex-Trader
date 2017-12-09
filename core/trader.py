@@ -158,11 +158,11 @@ class OandaTrader:
 
 class GDAXTrader(GDAX_Handler):
 
-    def __init__(self):
-
+    def __init__(self,auth=None, sandbox=False, *args,**kwargs):
+        super().__init__(auth=auth, sandbox=sandbox, *args, **kwargs)
+        self.url = super().get_url()
         self.columns = ['created_at', 'id', 'Price', 'Stop Loss',
                         'Target Price', 'size', 'status']
-        self.url = GDAX_Handler.url
         self.order_df = pd.DataFrame(columns=self.columns)
 
     def new_order(self, trade):
@@ -186,7 +186,7 @@ class GDAXTrader(GDAX_Handler):
                             _type = 'limit',
                             size = size * trade['TP1 vs TP2 Split'],
                             side = 'buy',
-                            product_id = GDAX_Handler.order_dict['product_id'] ,
+                            product_id = self.order_dict['product_id'] ,
                             price = trade['Entry Price'],
                             verbose=True)
 
@@ -194,7 +194,7 @@ class GDAXTrader(GDAX_Handler):
                             _type = 'limit',
                             size = size * (1 - trade['TP1 vs TP2 Split']),
                             side = 'buy',
-                            product_id = GDAX_Handler.order_dict['product_id'],
+                            product_id = self.order_dict['product_id'],
                             price = trade['Entry Price'],
                             verbose=True)
 
@@ -204,14 +204,18 @@ class GDAXTrader(GDAX_Handler):
         print('Take profits: {} , {}'.format(trade['Target Price 1'],
                                              trade['Target Price 2']))
 
+        """
+        creating dataframe to get a record of the orders
+        And the values of stop loss and target price to execute
+        them precisely
+        """
+        self.load_orders(r1,r2)
 
-        r1 = json.loads(r1.text)
-        r2 = json.loads(r2.text)
-        """
-            creating dataframe to get a record of the orders
-            And the values of stop loss and target price to execute
-            them precisely
-        """
+    def load_orders(self, order1, order2):
+        #load the new orders into a dataframe
+        r1 = json.loads(order1.text)
+        r2 = json.loads(order2.text)
+
 
         r1['Stop Loss'] = self.stop_l
         r1['Target Price'] = self.target_1
@@ -300,8 +304,6 @@ class GDAXTrader(GDAX_Handler):
                                             price=row['Target Price'],
                                             size=r['filled_size'])
                         self.order_df = self.order_df[self.order_df['id'] != row['id']]
-
-
 
 
 if __name__ == "__main__":

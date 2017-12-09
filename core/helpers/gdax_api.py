@@ -80,7 +80,7 @@ class GDAX_Handler:
             status = ['open']
             product_id = 'BTC-USD'
         """
-        r = self.url + '/orders/'
+        url = self.url + '/orders/'
         result = []
         params = {}
 
@@ -96,7 +96,7 @@ class GDAX_Handler:
         return result
 
     def paginate_orders(self, product_id, status, result, after):
-        r = self.url + '/orders'
+        url = self.url + '/orders'
 
         params = {
             "after": str(after),
@@ -138,11 +138,14 @@ class GDAX_Handler:
         available = float(r.json()['available'])
         return available
 
+    def get_url(self):
+        return self.url
+
 if __name__ == '__main__':
     # API keys.
-    API_key = 'c2c736241299f78327809504d2ffb0e7'
-    passphrase = 'si3b5hm7609'
-    secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    API_key = ''
+    passphrase = ''
+    secret = ''
 
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)

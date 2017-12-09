@@ -36,14 +36,18 @@ GDAX_config = {
             'API_SECRET' : "",
             'API_PASS' : "",
             'request':{"type": "subscribe",
-                    "channels": [{"name": "full", "product_ids": ["BTC-USD"]}]},
+                    "channels": [{"name": "full",
+                                "product_ids": ["BTC-USD"]}]},
+            'ETF': 'M5',
+            'ETF1': 'M15',
+            'data_days': 2,
             }
 
 def get_config(platform):
     configuration = {}
-    if platform == "oanda":
+    if platform == "Oanda":
         configuration = Oanda_config
-    elif platform == "gdax":
+    elif platform == "GDAX":
         configuration = GDAX_config
 
     return configuration

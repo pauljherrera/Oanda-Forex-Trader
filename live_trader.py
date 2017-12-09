@@ -7,7 +7,7 @@ Created on Tue Nov 21 19:39:44 2017
 import sys
 import re
 import oandapyV20
-from core.GDAX_data_feeder import GDAXClient
+from core.GDAX_data_feeder import GDAXDataFeeder
 from core.data_feeder import OandaDataFeeder
 from core.trader import OandaTrader, GDAXTrader
 from core.strategy import Strategy
@@ -21,6 +21,7 @@ class CustomStrategy(Strategy):
         """
         print('New bar')
         print(ETF_df, ETF1_df)
+        """
         trade = {'Entry Price': 111.08000000000001,
                 'Pct of Portfolio': 0.01,
                 'Stop Loss': 110.86554000000001,
@@ -31,7 +32,7 @@ class CustomStrategy(Strategy):
                 'zone_index': 1193}
         self.trader.new_order(trade)
         self.trader.cancel_pending_orders()
-
+        """
 
 def get_arg(index, default):
     try:
@@ -43,16 +44,16 @@ if __name__ == "__main__":
 
     """
     model input:
-        python live_trader.py --USD_EUR oanda
-        python live_trader.py --USD-BTC gdax
+        python live_trader.py --USD_EUR Oanda
+        python live_trader.py --USD-BTC GDAX
     """
     # Config variables
 
-    pair = get_arg(1,"--USD_EUR")
-    platform = get_arg(2,"oanda")
+    pair = get_arg(1, "--BTC-USD")
+    platform = get_arg(2, "GDAX")
     configuration = get_config(platform)
 
-    if platform == "oanda":
+    if platform == "Oanda":
 
         environment = configuration['Environment']
         accountID = configuration['AccountID']
@@ -63,7 +64,7 @@ if __name__ == "__main__":
                     'params': {'granularity':configuration['ETF'],
                                'count':1000},
                     'access_token': access_token,
-                    'environment':environment,
+                    'environment': environment,
                     'ETF1': configuration['ETF1'],
                     'ETF': configuration['ETF']}
 
@@ -75,7 +76,8 @@ if __name__ == "__main__":
                                 api_client=client)
         trader = OandaTrader(accountID=accountID, api_client=client,
                         instrument=instrument)
-        strategy = CustomStrategy(trader=trader, **headers)
+
+        strategy = CustomStrategy(trader=trader,platform="Oanda", **headers)
 
         data_feeder.pub.register('Oanda_data', strategy)
 
@@ -83,7 +85,7 @@ if __name__ == "__main__":
         data_feeder.get_live_data(instrument=instrument)
         print('Trader succesfully initialized.')
 
-    elif platform == "gdax":
+    elif platform == "GDAX":
 
         #parameters for the GDAX client and strategy class
         pair = re.sub('--','',pair)
@@ -91,15 +93,26 @@ if __name__ == "__main__":
         API_SECRET = configuration['API_SECRET']
         API_PASS = configuration['API_PASS']
         request = configuration['request']
+        ETF = configuration['ETF']
+        ETF1 = configuration['ETF1']
+        data_days = configuration['data_days']
 
-        params = {'pair': pair}
+        params = {'instrument': pair,
+                    'ETF': ETF,
+                    'ETF1': ETF1,
+                    'data_days': data_days}
 
         #Authentication
-        auth=Authentication(API_KEY, API_SECRET, API_PASS)
+        auth=Authentication(api_key=API_KEY, secret_key=API_SECRET, passphrase=API_PASS)
 
-        #for authenticated mode
-        request.update(auth.get_dict())
+        #initialization
+        data_feeder = GDAXDataFeeder(request,[pair])
 
-        #Initializing client
-        ws = GDAXClient(request,pair)
-        ws.connect()
+        trader = GDAXTrader(auth=auth,sandbox=True)
+
+        strategy = CustomStrategy(trader=trader, **params)
+
+        data_feeder.pub.register('GDAX_data', strategy)
+
+        data_feeder.start_live_data()
+        print("Trader succesfully initialized.")
