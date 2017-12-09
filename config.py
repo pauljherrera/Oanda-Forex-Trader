@@ -32,9 +32,9 @@ Oanda_config = {
             'ETF1': 'M5',
             }
 GDAX_config = {
-            'API_KEY' : "",
-            'API_SECRET' : "",
-            'API_PASS' : "",
+            'API_KEY' : "f5e7dc5ef713b7fdca66482c361d26d1",
+            'API_SECRET' : "DWYj6Ji5lBKVhvaFrl1rlyQ7HXroqTsdttZBt31MX+6KoIZCPUoCoffNPdPay7mcn4/9USUt3QHg5yLxYGcYWw==",
+            'API_PASS' : "4i0ievod3k2",
             'request':{"type": "subscribe",
                     "channels": [{"name": "full",
                                 "product_ids": ["BTC-USD"]}]},

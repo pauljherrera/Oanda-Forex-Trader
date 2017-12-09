@@ -7,6 +7,7 @@ Created on Tue Nov 21 19:39:44 2017
 import sys
 import re
 import oandapyV20
+import requests
 from core.GDAX_data_feeder import GDAXDataFeeder
 from core.data_feeder import OandaDataFeeder
 from core.trader import OandaTrader, GDAXTrader
@@ -108,9 +109,10 @@ if __name__ == "__main__":
         #initialization
         data_feeder = GDAXDataFeeder(request,[pair])
 
-        trader = GDAXTrader(auth=auth,sandbox=True)
 
-        strategy = CustomStrategy(trader=trader, **params)
+        trader = GDAXTrader(auth=auth)
+
+        strategy = CustomStrategy(trader=trader,sandbox=True, **params)
 
         data_feeder.pub.register('GDAX_data', strategy)
 

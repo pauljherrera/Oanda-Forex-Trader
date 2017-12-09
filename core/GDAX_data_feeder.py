@@ -47,6 +47,7 @@ class GDAXDataFeeder():
                         self.ws.ping("alive")
 
                 msg = json.loads(self.ws.recv())
+
                 self.on_message(msg)
             except ValueError as e:
                 self.on_error(e)
