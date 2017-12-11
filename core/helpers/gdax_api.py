@@ -10,6 +10,8 @@ import json
 import os
 import sys
 
+from dateutil.parser import parse
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from core.helpers.gdax_auth import Authentication
 
@@ -68,9 +70,9 @@ class GDAX_Handler:
         if r.status_code == 200:
             if verbose:
                 print('\nNew order: {}, {}, {}'.format(product_id, side, size))
-            return json.loads(r.text)
+            return r
         else:
-            print("Error in response.")
+            print("Error placing order.")
             return r
 
     def list_orders(self, product_id='', status=[]):
@@ -120,11 +122,11 @@ class GDAX_Handler:
         """
         orders = self.list_orders(status=['open'])
 
-        limit_orders = [order for order in orders if order['type'] == 'limit']
+        limit_orders = [order for order in orders[0] if order['type'] == 'limit']
 
         if date:
             canceled_orders = [order['id'] for order in limit_orders
-                        if order['created_at'] <= date]
+                        if parse(order['created_at']) <= date]
         else:
             canceled_orders = [order['id'] for order in limit_orders]
 
@@ -135,7 +137,7 @@ class GDAX_Handler:
 
     def margin_available(self):
         r = requests.get(self.url + '/accounts', auth=self.auth)
-        available = float(r.json()['available'])
+        available = float(r.json()[0]['available'])
         return available
 
     def get_url(self):

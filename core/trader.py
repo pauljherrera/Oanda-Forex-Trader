@@ -7,6 +7,8 @@ Created on Tue Nov 21 17:32:50 2017
 
 import sys
 import os
+import requests
+import json
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from math import floor
@@ -177,10 +179,12 @@ class GDAXTrader(GDAX_Handler):
         'Type of Trade': <'LONG'/'SHORT'>}
         """
 
-        size = round(super().margin_available() * trade['Pct of Portfolio'], 5)
+        size = round(self.margin_available() / trade['Entry Price'] * trade['Pct of Portfolio'], 5)
         self.stop_l = trade['Stop Loss']
         self.target_1 = trade['Target Price 1']
         self.target_2 = trade['Target Price 2']
+
+        print(size)
 
         r1 = self.place_order(
                             _type = 'limit',
@@ -189,7 +193,7 @@ class GDAXTrader(GDAX_Handler):
                             product_id = self.order_dict['product_id'] ,
                             price = trade['Entry Price'],
                             verbose=True)
-
+        
         r2 = self.place_order(
                             _type = 'limit',
                             size = size * (1 - trade['TP1 vs TP2 Split']),
@@ -197,19 +201,25 @@ class GDAXTrader(GDAX_Handler):
                             product_id = self.order_dict['product_id'],
                             price = trade['Entry Price'],
                             verbose=True)
-
-        print('\nNew orders opened.')
-        print('Entry price: {}'.format(trade['Entry Price']))
-        print('Stop Loss: {}'.format(trade['Stop Loss']))
-        print('Take profits: {} , {}'.format(trade['Target Price 1'],
-                                             trade['Target Price 2']))
-
-        """
-        creating dataframe to get a record of the orders
-        And the values of stop loss and target price to execute
-        them precisely
-        """
-        self.load_orders(r1,r2)
+        
+        if (r1.status_code == 200) and (r2.status_code == 200):
+            print('\nNew orders opened.')
+            print('Entry price: {}'.format(trade['Entry Price']))
+            print('Stop Loss: {}'.format(trade['Stop Loss']))
+            print('Take profits: {} , {}'.format(trade['Target Price 1'],
+                                                 trade['Target Price 2']))
+    
+            """
+            creating dataframe to get a record of the orders
+            And the values of stop loss and target price to execute
+            them precisely
+            """
+            self.load_orders(r1,r2)
+        
+        else:
+            print("Trade 1 status: {}".format(r1.text))
+            print("Trade 2 status: {}".format(r2.text))
+            
 
     def load_orders(self, order1, order2):
         #load the new orders into a dataframe
@@ -234,6 +244,8 @@ class GDAXTrader(GDAX_Handler):
                                     product_id=product_id, price=price,
                                     verbose=verbose)
         self.last_order = order
+        
+        return order
 
     def close_last_order(self):
         # Setting parameters.

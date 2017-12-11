@@ -7,7 +7,6 @@ Created on Tue Nov 21 19:39:44 2017
 import sys
 import re
 import oandapyV20
-import requests
 from core.GDAX_data_feeder import GDAXDataFeeder
 from core.data_feeder import OandaDataFeeder
 from core.trader import OandaTrader, GDAXTrader
@@ -22,18 +21,16 @@ class CustomStrategy(Strategy):
         """
         print('New bar')
         print(ETF_df, ETF1_df)
-        """
-        trade = {'Entry Price': 111.08000000000001,
-                'Pct of Portfolio': 0.01,
-                'Stop Loss': 110.86554000000001,
-                'TP1 vs TP2 Split': 0.3,
-                'Target Price 1': 162.93000000000001,
-                'Target Price 2': 185.14699999999999,
+        trade = {'Entry Price': 12000,
+                'Pct of Portfolio': 0.2,
+                'Stop Loss': 10000,
+                'TP1 vs TP2 Split': 0.5,
+                'Target Price 1': 20000,
+                'Target Price 2': 21000,
                 'Type of Trade': 'LONG',
                 'zone_index': 1193}
         self.trader.new_order(trade)
-        self.trader.cancel_pending_orders()
-        """
+#        self.trader.cancel_pending_orders()
 
 def get_arg(index, default):
     try:
@@ -63,7 +60,7 @@ if __name__ == "__main__":
 
         headers = {'instrument': instrument,
                     'params': {'granularity':configuration['ETF'],
-                               'count':1000},
+                               'count':configuration['Data candles']},
                     'access_token': access_token,
                     'environment': environment,
                     'ETF1': configuration['ETF1'],

@@ -30,17 +30,18 @@ Oanda_config = {
             'Instrument': 'EUR_USD',
             'ETF': 'M1',
             'ETF1': 'M5',
+            'Data candles': 1000,
             }
 GDAX_config = {
-            'API_KEY' : "f5e7dc5ef713b7fdca66482c361d26d1",
-            'API_SECRET' : "DWYj6Ji5lBKVhvaFrl1rlyQ7HXroqTsdttZBt31MX+6KoIZCPUoCoffNPdPay7mcn4/9USUt3QHg5yLxYGcYWw==",
-            'API_PASS' : "4i0ievod3k2",
+            'API_KEY' : "c2c736241299f78327809504d2ffb0e7",
+            'API_SECRET' : "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA==",
+            'API_PASS' : "si3b5hm7609",
             'request':{"type": "subscribe",
                     "channels": [{"name": "full",
                                 "product_ids": ["BTC-USD"]}]},
             'ETF': 'M5',
             'ETF1': 'M15',
-            'data_days': 2,
+            'data_days': 1,
             }
 
 def get_config(platform):
