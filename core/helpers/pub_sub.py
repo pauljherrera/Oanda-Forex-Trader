@@ -31,7 +31,7 @@ class Publisher:
     def dispatch(self, channel, message):
         if channel == 'GDAX_data':
             message['bids'] = [{'liquidity' : float(message['size']),
-                                'price' : message['price']}]
+                                'price' : float(message['price'])}]
             message['Channel'] = "GDAX_data"
         else:
             message['Channel'] = "Oanda_data"

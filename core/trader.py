@@ -193,7 +193,7 @@ class GDAXTrader(GDAX_Handler):
                             product_id = self.order_dict['product_id'] ,
                             price = trade['Entry Price'],
                             verbose=True)
-        
+
         r2 = self.place_order(
                             _type = 'limit',
                             size = size * (1 - trade['TP1 vs TP2 Split']),
@@ -201,25 +201,25 @@ class GDAXTrader(GDAX_Handler):
                             product_id = self.order_dict['product_id'],
                             price = trade['Entry Price'],
                             verbose=True)
-        
+
         if (r1.status_code == 200) and (r2.status_code == 200):
             print('\nNew orders opened.')
             print('Entry price: {}'.format(trade['Entry Price']))
             print('Stop Loss: {}'.format(trade['Stop Loss']))
             print('Take profits: {} , {}'.format(trade['Target Price 1'],
                                                  trade['Target Price 2']))
-    
+
             """
             creating dataframe to get a record of the orders
             And the values of stop loss and target price to execute
             them precisely
             """
             self.load_orders(r1,r2)
-        
+
         else:
             print("Trade 1 status: {}".format(r1.text))
             print("Trade 2 status: {}".format(r2.text))
-            
+
 
     def load_orders(self, order1, order2):
         #load the new orders into a dataframe
@@ -227,11 +227,11 @@ class GDAXTrader(GDAX_Handler):
         r2 = json.loads(order2.text)
 
 
-        r1['Stop Loss'] = self.stop_l
-        r1['Target Price'] = self.target_1
+        r1['Stop Loss'] = float(self.stop_l)
+        r1['Target Price'] = float(self.target_1)
 
-        r2['Stop Loss'] = self.stop_l
-        r2['Target Price'] = self.target_2
+        r2['Stop Loss'] = float(self.stop_l)
+        r2['Target Price'] = float(self.target_2)
 
         new_ords = get_dataframe(r1,r2,self.columns)
 
@@ -244,7 +244,7 @@ class GDAXTrader(GDAX_Handler):
                                     product_id=product_id, price=price,
                                     verbose=verbose)
         self.last_order = order
-        
+
         return order
 
     def close_last_order(self):
@@ -287,7 +287,7 @@ class GDAXTrader(GDAX_Handler):
 
         """
         data = self.order_df
-        price = tick['price']
+        price = float(tick['price'])
 
         if len(data.index) != 0:
             self.stop_orders = data.loc[price <= data['Stop Loss']]\
