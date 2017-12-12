@@ -44,6 +44,7 @@ class OandaTrader:
         self.leverage = leverage
         self.get_margin_available()
         self.round_value = 5 if not 'JPY' in self.instrument else 3
+        pd.set_option('expand_frame_repr')
 
         # Initializing daemon for getting account balance
         scheduler = BackgroundScheduler()
@@ -163,8 +164,8 @@ class GDAXTrader(GDAX_Handler):
     def __init__(self,auth=None, sandbox=False, *args,**kwargs):
         super().__init__(auth=auth, sandbox=sandbox, *args, **kwargs)
         self.url = super().get_url()
-        self.columns = ['created_at', 'id', 'Price', 'Stop Loss',
-                        'Target Price', 'size', 'status']
+        self.columns = ['created_at', 'id', 'price','size', 'Stop Loss',
+                        'Target Price', 'status']
         self.order_df = pd.DataFrame(columns=self.columns)
 
     def new_order(self, trade):
@@ -179,7 +180,7 @@ class GDAXTrader(GDAX_Handler):
         'Type of Trade': <'LONG'/'SHORT'>}
         """
 
-        size = round(self.margin_available() / trade['Entry Price'] * trade['Pct of Portfolio'], 5)
+        size = round(self.margin_available() / trade['Entry Price'] * trade['Pct of Portfolio'], 4)
         self.stop_l = trade['Stop Loss']
         self.target_1 = trade['Target Price 1']
         self.target_2 = trade['Target Price 2']
@@ -288,6 +289,9 @@ class GDAXTrader(GDAX_Handler):
         """
         data = self.order_df
         price = float(tick['price'])
+        data[['Stop Loss', 'Target Price']] = data[['Stop Loss', 'Target Price']].apply(pd.to_numeric)
+        print(data)
+        print(self.order_df)
 
         if len(data.index) != 0:
             self.stop_orders = data.loc[price <= data['Stop Loss']]\
@@ -295,11 +299,12 @@ class GDAXTrader(GDAX_Handler):
             self.target_orders = data.loc[price >= data['Target Price']]\
                                         [['id','Target Price']]
 
-            if len(self.stop_orders.index) != 0:
+            if int(len(self.stop_orders.index)) > 0:
+
                 for index,row in self.stop_orders.iterrows():
                     #getting the actual status of each order
                     r = requests.get(self.url + '/orders/{}'.format(row['id']))
-                    r = json.loads(r.text)
+                    r = r.json()
                     if r['status'] == 'done':
                         self.place_order(_type='stop', side='sell',
                                             price=row['Stop Loss'],
@@ -307,10 +312,10 @@ class GDAXTrader(GDAX_Handler):
                         #deletes the orders with status done and processed
                         self.order_df = self.order_df[self.order_df['id'] != row['id']]
 
-            if  len(self.target_orders.index) != 0:
+            if  len(self.target_orders.index) > 0:
                 for index,row in self.target_orders.iterrows():
                     r = requests.get(self.url + '/orders/{}'.format(row['id']))
-                    r = json.loads(r.text)
+                    r = r.json()
                     if r['status'] == 'done':
                         self.place_order(_type='limit', side='sell',
                                             price=row['Target Price'],

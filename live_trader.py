@@ -30,7 +30,7 @@ class CustomStrategy(Strategy):
                 'Type of Trade': 'LONG',
                 'zone_index': 1193}
         self.trader.new_order(trade)
-#        self.trader.cancel_pending_orders()
+        #self.trader.cancel_pending_orders()
 
 def get_arg(index, default):
     try:

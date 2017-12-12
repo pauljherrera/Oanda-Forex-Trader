@@ -165,6 +165,7 @@ class Strategy(Subscriber):
         temp_df['time'] = pd.to_datetime(temp_df['time'])
         temp_df['price'] =  temp_df['price'].astype(float)
         temp_df.set_index('time', drop=True, inplace=True)
+        temp_df = temp_df.sort_index()
 
         self.live_df = pd.concat([self.live_df, temp_df])
         #print(self.live_df)
