@@ -22,7 +22,6 @@ Options for the timeframe:
 “H12” - 12 hours
 """
 
-
 Oanda_config = {
             'AccountID': '101-001-1407695-002',
             'Token': 'f9263a6387fee52f94817d6cd8dca978-d097b210677ab84fb58b4655a33eb25c',
@@ -44,11 +43,22 @@ GDAX_config = {
             'data_days': 1,
             }
 
+### ADDED PART FOR BINANCE
+Binance_config = {
+        'API_KEY' : "86p6OuRYPKYHDN8bXPNu5BFtPJorD9anTHBRiEiLZgoibiJCIr4pEjdLK6WHikph", #to be changed
+        'API_SECRET' : "mdrmfZsilWXz56PdTQThlVO9TlCiSC,H7L460jgBb0z8RS7cK0kxaSnGYqRwW2zkp", #to be changed
+        'SYMBOLS' : ['btcusdt']
+        'ETF' : '5m',
+        'ETF1' :'15m',
+}
+
 def get_config(platform):
     configuration = {}
     if platform == "Oanda":
         configuration = Oanda_config
     elif platform == "GDAX":
         configuration = GDAX_config
+    else:
+        configuration = Binance_config
 
     return configuration

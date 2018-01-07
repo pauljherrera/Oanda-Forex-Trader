@@ -9,10 +9,12 @@ import re
 import oandapyV20
 from core.GDAX_data_feeder import GDAXDataFeeder
 from core.data_feeder import OandaDataFeeder
+from core.binancedatafeeder import BinanceDataFeeder
 from core.trader import OandaTrader, GDAXTrader
 from core.strategy import Strategy
 from core.helpers.gdax_auth import Authentication
 from config import get_config
+from binance.client import Client
 
 class CustomStrategy(Strategy):
     def on_ETF_bar(self, ETF_df, ETF1_df):
@@ -115,3 +117,18 @@ if __name__ == "__main__":
 
         data_feeder.start_live_data()
         print("Trader succesfully initialized.")
+
+    ## ADDED PART OF BINANCE, STILL NEEDS THE TRADER
+    elif platform == 'Binance':
+
+        api_key = configuration['API_KEY']
+        api_secret = configuration['API_SECRET']
+        symbols = configuration['SYMBOLS']
+        ETF = configuration['ETF']
+        ETF1 = configuration['ETF1']
+
+        client = Client(api_key,api_secret)
+
+        data_feeder = BinanceDataFeeder(client,symbols,[ETF,ETF1])
+        
+        data_feeder.start_live_data()
