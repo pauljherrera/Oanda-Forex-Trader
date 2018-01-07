@@ -52,14 +52,13 @@ class Strategy_Binance(Subscriber):
 		self.on_ETF_bar(self.ETF_df,self.ETF1_df)
 	def update(self,message):
 		#get the open time of the candlestick and the  ohlc and adds it to the right dataframe
-		#print("Updating")
 		lmess = [str(dt.datetime.fromtimestamp(message['k']['t']/1000)),message['k']['o'],message['k']['h'],
 												message['k']['l'],message['k']['c']]
 		if message['k']['i'] == self.timeframes[self.ETF]:
-			if message['k']['i'] != self.ETF_df.iloc[-1]['Date']:
+			if str(dt.datetime.fromtimestamp(message['k']['t']/1000)) != self.ETF_df.iloc[-1]['Date']:
 				self.live_ETF.loc[len(self.ETF_df.index+1)]=lmess
 		else:
-			if message['k']['i'] != self.ETF1_df.iloc[-1]['Date']:
+			if str(dt.datetime.fromtimestamp(message['k']['t']/1000)) != self.ETF1_df.iloc[-1]['Date']:
 				self.live_ETF1.loc[len(self.ETF_df.index+1)]=lmess
 	def update_dfs(self):
 		print("saving")

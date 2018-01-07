@@ -36,17 +36,11 @@ class BinanceDataFeeder():
         self.pub=Publisher(['Binance_data'])
         self._stop = False
         self._client = client
-        self._last_open = self.generateOpenDic()
-        self._last_single = 0
     def _on_message(self,message,multi):
         if multi:
-            if message['data']['k']['t'] != self._last_open[message['data']['s'].lower()+message['data']['k']['i']]:
-                self._last_open[message['data']['s'].lower()+message['data']['k']['i']] = message['data']['k']['t']
-                self.pub.dispatch('Binance_data',message['data'])
+            self.pub.dispatch('Binance_data',message['data'])
         else:
-            if message['k']['t'] != self._last_single:  #candlestick open so it dispatch what it has to
-                self._last_single = message['k']['t']
-                self.pub.dispatch('Binance_data',message)
+            self.pub.dispatch('Binance_data',message)
     def _on_error(self):
         self._stop = True
         print("An error ocurred handling received data.")
@@ -89,12 +83,6 @@ class BinanceDataFeeder():
                     first = False     
         t = threading.Thread(target=self._start_socket(socket_name,multi))
         t.start()
-    def generateOpenDic(self):
-        d = {}
-        for sy in self._symbols:
-            for v in self._intervals:
-                d[sy+v] = 0
-        return d
         
 
 def main():
