@@ -39,7 +39,7 @@ class BinanceDataFeeder():
         self._last_open = 0
     def _on_message(self,mess):
         #print(mess)
-        if mess['k']['t'] != self._last_open:  #candlestick open
+        if mess['k']['t'] != self._last_open:  #candlestick open so it dispatch what it has to
             self._last_open = mess['k']['t']
             self._pub.dispatch('Binance_data',mess)
     def _on_error(self):
@@ -47,7 +47,7 @@ class BinanceDataFeeder():
         print("An error ocurred handling received data.")
         self._on_message(self._last_mess)
     def _start_socket(self, path,multi=False,prefix='ws/'):
-        #create the url
+        #completes the url
         if path in self._conns:
             return False
         if not multi:

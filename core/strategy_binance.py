@@ -44,10 +44,10 @@ class Strategy_Binance(Subscriber):
 		lmess = [str(dt.datetime.fromtimestamp(mess['k']['t']/1000)),mess['k']['o'],mess['k']['h'],mess['k']['l'],mess['k']['c']]
 		if mess['k']['i'] == self.timeframes[self.ETF]:
 			self.ETF_df.loc[len(self.ETF_df.index+1)]=lmess
-			self.ETF_df.to_csv("ETF-.csv", index=False)
+			self.ETF_df.to_csv("ETF.csv", index=False)
 		else:
 			self.ETF1_df.loc[len(self.ETF_df.index+1)]=lmess
-			self.ETF1_df.to_csv("ETF1-.csv",index=False)
+			self.ETF1_df.to_csv("ETF1.csv",index=False)
 		self.on_ETF_bar(self.ETF_df,self.ETF1_df)
 	def on_ETF_bar(self, ETF_df, ETF1_df):
 		"""
