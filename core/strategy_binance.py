@@ -20,12 +20,14 @@ class Strategy_Binance(Subscriber):
 							'H6': KLINE_INTERVAL_6HOUR,
 							'H8': KLINE_INTERVAL_8HOUR,
 							'H12': KLINE_INTERVAL_12HOUR }
+		#Initializers
 		self.plataform = plataform
 		self.client = Client(kwargs['API_KEY'],kwargs['API_SECRET'])
 		self.ETF = kwargs['ETF']
 		self.ETF1 = kwargs['ETF1']
 		self.live_ETF = pd.DataFrame(columns=["Date","O","H","L","C"])
 		self.live_ETF1 = pd.DataFrame(columns=["Date","O","H","L","C"])
+		#calculate the start of the historics
 		today = dt.datetime.today()
 		start_date = int(time.mktime((today - dt.timedelta(days=kwargs['data_days'])).timetuple()))*1000
 		end_date = int(time.mktime((today+dt.timedelta(days=1)).timetuple()))*1000
@@ -38,6 +40,7 @@ class Strategy_Binance(Subscriber):
 		self.ETF1_df.to_csv("ETF1.csv",index=False)
 		self.on_ETF_bar(self.ETF_df,self.ETF1_df)
 	def update(self,mess):
+		#get the open time of the candlestick and the  ohlc and adds it to the right dataframe
 		lmess = [str(dt.datetime.fromtimestamp(mess['k']['t']/1000)),mess['k']['o'],mess['k']['h'],mess['k']['l'],mess['k']['c']]
 		if mess['k']['i'] == self.timeframes[self.ETF]:
 			self.ETF_df.loc[len(self.ETF_df.index+1)]=lmess

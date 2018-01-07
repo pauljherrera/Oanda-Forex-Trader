@@ -27,6 +27,7 @@ class BinanceDataFeeder():
         :param intervals: list of kline intervals in format '1m','5m', etc
         :type intervals: str from enumerate http://python-binance.readthedocs.io/en/latest/enums.html in KLINES section
         """
+        #Initializers
         self._conns = {}
         self._loop = asyncio.get_event_loop()
         self._pub = Publisher(channels)
@@ -34,7 +35,7 @@ class BinanceDataFeeder():
         self._intervals = intervals
         self._pub=Publisher(['Binance_data'])
         self._stop = False
-        #self._client = client
+        self._client = client
         self._last_open = 0
     def _on_message(self,mess):
         #print(mess)
@@ -46,6 +47,7 @@ class BinanceDataFeeder():
         print("An error ocurred handling received data.")
         self._on_message(self._last_mess)
     def _start_socket(self, path,multi=False,prefix='ws/'):
+        #create the url
         if path in self._conns:
             return False
         if not multi:
@@ -68,6 +70,7 @@ class BinanceDataFeeder():
                             self._on_error()
         self._loop.run_until_complete(_watch_for_events())
     def start_live_data(self):
+        #builds the path for one or more coins and intervals
         if len(self._symbols) == 1 and len(self._intervals) == 1:
             socket_name = '{}@kline_{}'.format(self._symbols[0], self._intervals[0])
             multi = False
