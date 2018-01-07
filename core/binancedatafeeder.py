@@ -37,7 +37,7 @@ class BinanceDataFeeder():
         #self._client = client
         self._last_open = 0
     def _on_message(self,mess):
-        print(mess)
+        #print(mess)
         if mess['k']['t'] != self._last_open:  #candlestick open
             self._last_open = mess['k']['t']
             self._pub.dispatch('Binance_data',mess)
