@@ -4,8 +4,10 @@ import time
 from binance.client import Client
 from binance.enums import *
 from datetime import datetime as dtime
+from apscheduler.schedulers.background import BackgroundScheduler
 from core.helpers.pub_sub import Subscriber
 from core.helpers.binance_helper import binance_historic_rates
+from core.binancedatafeeder import BinanceDataFeeder
 
 class Strategy_Binance(Subscriber):
 	def __init__(self,plataform='Binance_data',*args,**kwargs):
@@ -27,27 +29,46 @@ class Strategy_Binance(Subscriber):
 		self.ETF1 = kwargs['ETF1']
 		self.live_ETF = pd.DataFrame(columns=["Date","O","H","L","C"])
 		self.live_ETF1 = pd.DataFrame(columns=["Date","O","H","L","C"])
+		self.g = "-"
+		self.g1 = "-"
 		#calculate the start of the historics
 		today = dt.datetime.today()
 		start_date = int(time.mktime((today - dt.timedelta(days=kwargs['data_days'])).timetuple()))*1000
 		end_date = int(time.mktime((today+dt.timedelta(days=1)).timetuple()))*1000
 		self.ETF_df = binance_historic_rates(self.client,kwargs['symbol'],self.timeframes[self.ETF],start_date,end_date)
 		self.ETF1_df = binance_historic_rates(self.client,kwargs['symbol'],self.timeframes[self.ETF1],start_date,end_date)
-		"""
-		Scheduler
-		"""
+		"""Scheduler"""
+		scheduler = BackgroundScheduler()
+		if self.ETF[0] == 'M':
+			scheduler.add_job(self.update_dfs, trigger='cron',
+								minute='*/{}'.format(self.ETF[1:]))
+		elif self.ETF[0] == 'H':
+			scheduler.add_job(self.update_dfs, trigger='cron',
+								hour='*/{}'.format(self.ETF[1:]))
+		scheduler.start()
+		"""Scheduler"""
 		self.ETF_df.to_csv("ETF.csv", index=False)
 		self.ETF1_df.to_csv("ETF1.csv",index=False)
 		self.on_ETF_bar(self.ETF_df,self.ETF1_df)
-	def update(self,mess):
+	def update(self,message):
 		#get the open time of the candlestick and the  ohlc and adds it to the right dataframe
-		lmess = [str(dt.datetime.fromtimestamp(mess['k']['t']/1000)),mess['k']['o'],mess['k']['h'],mess['k']['l'],mess['k']['c']]
-		if mess['k']['i'] == self.timeframes[self.ETF]:
-			self.ETF_df.loc[len(self.ETF_df.index+1)]=lmess
-			self.ETF_df.to_csv("ETF.csv", index=False)
+		#print("Updating")
+		lmess = [str(dt.datetime.fromtimestamp(message['k']['t']/1000)),message['k']['o'],message['k']['h'],
+												message['k']['l'],message['k']['c']]
+		if message['k']['i'] == self.timeframes[self.ETF]:
+			if message['k']['i'] != self.ETF_df.iloc[-1]['Date']:
+				self.live_ETF.loc[len(self.ETF_df.index+1)]=lmess
 		else:
-			self.ETF1_df.loc[len(self.ETF_df.index+1)]=lmess
-			self.ETF1_df.to_csv("ETF1.csv",index=False)
+			if message['k']['i'] != self.ETF1_df.iloc[-1]['Date']:
+				self.live_ETF1.loc[len(self.ETF_df.index+1)]=lmess
+	def update_dfs(self):
+		print("saving")
+		self.ETF_df = pd.concat([self.ETF_df,self.live_ETF])
+		self.ETF1_df = pd.concat([self.ETF1_df,self.live_ETF1])
+		self.live_ETF = pd.DataFrame(columns=["Date","O","H","L","C"])
+		self.live_ETF1 = pd.DataFrame(columns=["Date","O","H","L","C"])
+		self.ETF_df.to_csv("ETF.csv", index=False)
+		self.ETF1_df.to_csv("ETF1.csv",index=False)
 		self.on_ETF_bar(self.ETF_df,self.ETF1_df)
 	def on_ETF_bar(self, ETF_df, ETF1_df):
 		"""
@@ -65,8 +86,11 @@ def main():
 			'o': '16746.59000000', 'c': '16771.98000000', 'h': '16772.00000000', 'l': '16732.00000000',
 			'v': '10.38784000', 'n': 59, 'x': False, 'q': '174107.48574958',
 			'V': '8.16052300', 'Q': '136765.29006706', 'B': '0'}}
+	client = Client(binance['API_KEY'],binance['API_SECRET'])
+	dfeeder = BinanceDataFeeder(client,['btcusdt'],['5m','15m'])
 	s = Strategy_Binance(**binance)
-	s.update(mess)
+	dfeeder.pub.register('Binance_data', s)
+	dfeeder.start_live_data()
 
 
 if __name__ == '__main__':

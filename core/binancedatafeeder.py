@@ -30,22 +30,26 @@ class BinanceDataFeeder():
         #Initializers
         self._conns = {}
         self._loop = asyncio.get_event_loop()
-        self._pub = Publisher(channels)
+        self.pub = Publisher(channels)
         self._symbols = channels
         self._intervals = intervals
-        self._pub=Publisher(['Binance_data'])
+        self.pub=Publisher(['Binance_data'])
         self._stop = False
         self._client = client
-        self._last_open = 0
-    def _on_message(self,mess):
-        #print(mess)
-        if mess['k']['t'] != self._last_open:  #candlestick open so it dispatch what it has to
-            self._last_open = mess['k']['t']
-            self._pub.dispatch('Binance_data',mess)
+        self._last_open = self.generateOpenDic()
+        self._last_single = 0
+    def _on_message(self,message,multi):
+        if multi:
+            if message['data']['k']['t'] != self._last_open[message['data']['s'].lower()+message['data']['k']['i']]:
+                self._last_open[message['data']['s'].lower()+message['data']['k']['i']] = message['data']['k']['t']
+                self.pub.dispatch('Binance_data',message['data'])
+        else:
+            if message['k']['t'] != self._last_single:  #candlestick open so it dispatch what it has to
+                self._last_single = message['k']['t']
+                self.pub.dispatch('Binance_data',message)
     def _on_error(self):
         self._stop = True
         print("An error ocurred handling received data.")
-        self._on_message(self._last_mess)
     def _start_socket(self, path,multi=False,prefix='ws/'):
         #completes the url
         if path in self._conns:
@@ -60,11 +64,10 @@ class BinanceDataFeeder():
                     while not self._stop:
                         try:                    
                             if int(time.time())%30==0:
-                                print("pinging")
                                 socket.ping()
                             event = await socket.recv()
                             dict_event=json.loads(event)
-                            self._on_message(dict_event)
+                            self._on_message(dict_event,multi)
                         except:
                             socket.close()
                             self._on_error()
@@ -86,6 +89,12 @@ class BinanceDataFeeder():
                     first = False     
         t = threading.Thread(target=self._start_socket(socket_name,multi))
         t.start()
+    def generateOpenDic(self):
+        d = {}
+        for sy in self._symbols:
+            for v in self._intervals:
+                d[sy+v] = 0
+        return d
         
 
 def main():
@@ -93,7 +102,7 @@ def main():
     api_secret = "GyWN1cELJRgPk7DJ3re3RgB1lUTbiiDgWpoNfEO81R7vYyu0rXIIh4YPqN2WoWgS"
     client = Client(api_key,api_secret)
     dest = {}
-    klinesocket = BinanceDataFeeder(client,['btcusdt'],['5m'])
+    klinesocket = BinanceDataFeeder(client,['btcusdt'],['5m','15m'])
     klinesocket.start_live_data()
 
 if __name__ == '__main__':
