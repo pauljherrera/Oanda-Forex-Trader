@@ -29,8 +29,6 @@ class Strategy_Binance(Subscriber):
 		self.ETF1 = kwargs['ETF1']
 		self.live_ETF = pd.DataFrame(columns=["Date","O","H","L","C"])
 		self.live_ETF1 = pd.DataFrame(columns=["Date","O","H","L","C"])
-		self.g = "-"
-		self.g1 = "-"
 		#calculate the start of the historics
 		today = dt.datetime.today()
 		start_date = int(time.mktime((today - dt.timedelta(days=kwargs['data_days'])).timetuple()))*1000
